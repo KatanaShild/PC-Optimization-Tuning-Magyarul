@@ -56,7 +56,7 @@ A dokumentáció fő területei:
 4. **Hálózat** – latency, packet loss és hálózati optimalizálás
 5. **RAM** – memóriahasználat és memóriakezelés
 6. **Játék konfiguráció** – játék- és engine-specifikus beállítások
-7. **SSD/HDD -maximális sebbeség elérése és életartalmának növelése
+7. **SSD/HDD** -maximális sebbeség elérése és életartalmának növelése
 
 Később további területek is bekerülhetnek, például operációs rendszerrel, hardverjavítással, hibakereséssel vagy diagnosztikával kapcsolatos anyagok.
 
