@@ -1,20 +1,736 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC Optimization Tuning — Magyarul</title>
+<style>
 
-    <title>Gaming PC Optimization Guide</title>
+  :root{
+    --bg: #131316;
+    --bg-panel: #1c1c21;
+    --bg-panel-2: #201f26;
+    --border: #2c2b34;
+    --text: #edebf2;
+    --text-dim: #9c9aa8;
+    --purple: #a855f7;
+    --purple-deep: #7c3aed;
+    --cyan: #5fa8d3;
+
+    --risk-1: #6fae7c;
+    --risk-2: #d3b25f;
+    --risk-3: #d38a5f;
+    --risk-4: #d35f6b;
+    --risk-5: #b24bf3;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code, .mono, .data{
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+
+  a{ color: inherit; text-decoration: none; }
+
+  /* ---------- background glow layer ---------- */
+  .glow-field{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .glow-field::before{
+    content:"";
+    position:absolute;
+    top: -20%;
+    left: 55%;
+    width: 60vw;
+    height: 60vw;
+    background: radial-gradient(circle, rgba(168,85,247,0.16) 0%, rgba(168,85,247,0) 65%);
+  }
+  .glow-field::after{
+    content:"";
+    position:absolute;
+    bottom: -25%;
+    left: -10%;
+    width: 50vw;
+    height: 50vw;
+    background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, rgba(124,58,237,0) 65%);
+  }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+
+  @media (max-width: 860px){
+    .shell{ grid-template-columns: 1fr; }
+    .nav{ display:none; }
+  }
+
+  /* ---------- nav ---------- */
+  .nav{
+    border-right: 1px solid var(--border);
+    padding: 32px 24px 48px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .nav-brand{
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .nav-brand span{ color: var(--purple); }
+
+  .nav-sub{
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 36px;
+  }
+
+  .nav-group{ margin-bottom: 22px; }
+
+  .nav-group-title{
+    display:flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+    padding: 4px 0;
+  }
+
+  .nav-group-title .idx{
+    color: var(--text-dim);
+    font-size: 11px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  .nav-children{
+    margin: 4px 0 0 18px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .nav-children a{
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 2px 0;
+    transition: color .15s ease;
+  }
+  .nav-children a:hover{ color: var(--purple); }
+
+  .risk-dot{
+    display:inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+
+  /* ---------- main ---------- */
+  .main{
+    padding: 64px 56px 96px;
+    max-width: 900px;
+  }
+
+  @media (max-width: 860px){
+    .main{ padding: 40px 24px 72px; }
+  }
+
+  .eyebrow-row{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+
+  .status-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    font-size: 12px;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 5px 11px 5px 9px;
+    border-radius: 100px;
+    background: var(--bg-panel);
+  }
+  .status-pill .pulse{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--purple);
+    box-shadow: 0 0 8px 2px rgba(168,85,247,0.7);
+  }
+
+  h1{
+    font-size: clamp(34px, 4.6vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    font-weight: 650;
+    margin: 0 0 22px;
+    max-width: 13ch;
+  }
+
+  h1 .accent{
+    background: linear-gradient(120deg, var(--purple) 0%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .lede{
+    font-size: 17px;
+    color: var(--text-dim);
+    max-width: 56ch;
+    margin: 0 0 40px;
+  }
+
+  .lede strong{ color: var(--text); font-weight: 550; }
+
+  .cta-row{
+    display:flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 72px;
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 550;
+    border: 1px solid transparent;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+
+  .btn-primary{
+    background: linear-gradient(135deg, var(--purple) 0%, var(--purple-deep) 100%);
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(168,85,247,0.3), 0 8px 24px -8px rgba(124,58,237,0.6);
+  }
+  .btn-primary:hover{ transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(168,85,247,0.5), 0 10px 28px -8px rgba(124,58,237,0.8); }
+
+  .btn-ghost{
+    border-color: var(--border);
+    color: var(--text);
+    background: var(--bg-panel);
+  }
+  .btn-ghost:hover{ border-color: var(--purple-deep); }
+
+  /* ---------- measurement strip ---------- */
+  .measure-strip{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 80px;
+  }
+
+  @media (max-width: 640px){
+    .measure-strip{ grid-template-columns: 1fr; }
+  }
+
+  .measure-cell{
+    background: var(--bg-panel);
+    padding: 22px 24px;
+  }
+
+  .measure-label{
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .measure-value{
+    font-size: 22px;
+    color: var(--cyan);
+    letter-spacing: -0.01em;
+  }
+  .measure-value .unit{ font-size: 14px; color: var(--text-dim); margin-left: 3px; }
+
+  /* ---------- section: philosophy ---------- */
+  .section{ margin-bottom: 76px; }
+
+  .section-head{
+    display:flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num{
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--purple);
+  }
+
+  .section-head h2{
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .prose p{
+    color: var(--text-dim);
+    max-width: 62ch;
+    margin: 0 0 16px;
+  }
+  .prose p:last-child{ margin-bottom: 0; }
+  .prose strong{ color: var(--text); font-weight: 550; }
+
+  /* ---------- risk legend ---------- */
+  .risk-grid{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+
+  @media (max-width: 700px){
+    .risk-grid{ grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .risk-card{
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .risk-card::before{
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0;
+    height: 3px;
+  }
+
+  .risk-card.r1::before{ background: var(--risk-1); }
+  .risk-card.r2::before{ background: var(--risk-2); }
+  .risk-card.r3::before{ background: var(--risk-3); }
+  .risk-card.r4::before{ background: var(--risk-4); }
+  .risk-card.r5::before{
+    background: var(--risk-5);
+    box-shadow: 0 0 12px 1px rgba(178,75,243,0.9);
+  }
+
+  .risk-card-level{
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .risk-card-name{
+    font-size: 13.5px;
+    font-weight: 550;
+  }
+
+  /* ---------- roadmap tree ---------- */
+  .tree{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .tree-row{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px 16px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .tree-row:hover{
+    background: var(--bg-panel);
+    border-color: var(--border);
+  }
+
+  .tree-row-left{
+    display:flex;
+    align-items:baseline;
+    gap: 14px;
+  }
+
+  .tree-idx{
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--purple);
+    width: 24px;
+  }
+
+  .tree-title{ font-size: 14.5px; }
+  .tree-title .sub{ color: var(--text-dim); font-weight: 400; }
+
+  .tree-status{
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+  .tree-status.done{ color: var(--risk-1); }
+  .tree-status.progress{ color: var(--cyan); }
+
+  /* ---------- footer ---------- */
+  .foot{
+    border-top: 1px solid var(--border);
+    padding-top: 28px;
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    flex-wrap: wrap;
+    gap: 12px;
+    color: var(--text-dim);
+    font-size: 12.5px;
+  }
+
+</style>
 </head>
-
 <body>
 
-    <h1>Gaming PC Optimization Guide</h1>
+<div class="glow-field"></div>
 
-    <p>
-        Ne tweakelj vakon. Értsd meg, mérd meg,
-        és a saját gépedhez optimalizálj.
+<div class="shell">
+
+  <!-- ============ NAV ============ -->
+  <nav class="nav">
+    <div class="nav-brand">PC<span>Tuning</span>.hu</div>
+    <div class="nav-sub">mérés-alapú optimalizálás</div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="idx">00</span> Kezdés / filozófia</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="idx">01</span> Kiindulási állapot</div>
+      <div class="nav-children">
+        <a href="#">Hardver felismerése</a>
+        <a href="#">Driver állapot</a>
+        <a href="#">Hőmérsékletek</a>
+        <a href="#">Órajelek</a>
+        <a href="#">FPS / frametime</a>
+        <a href="#">CPU / GPU kihasználtság</a>
+        <a href="#">Benchmark + baseline</a>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-1)"></span><span class="idx">02</span> Power</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-2)"></span><span class="idx">03</span> CPU</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-2)"></span><span class="idx">04</span> GPU</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">05</span> Network</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-2)"></span><span class="idx">06</span> RAM</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">07</span> Game config</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">08</span> SSD / HDD</div>
+    </div>
+  </nav>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <div class="eyebrow-row">
+      <span class="status-pill"><span class="pulse"></span>PC / Optimization / Tuning</span>
+    </div>
+
+    <h1>Ne tweakelj vakon.<br>Mérd meg, <span class="accent">aztán optimalizálj.</span></h1>
+
+    <p class="lede">
+      Magyar nyelvű, mérésalapú útmutató PC-k és laptopok játékra történő
+      optimalizálásához. <strong>Nem</strong> egy újabb „100 Windows tweak, amitől
+      +50 FPS-ed lesz” lista — hanem egy módszer, amivel megtalálod, mi működik
+      a saját gépeden.
     </p>
+
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#roadmap">Ugrás a tartalomhoz</a>
+      <a class="btn btn-ghost" href="#philosophy">Mi ez pontosan?</a>
+    </div>
+
+    <!-- ============ MI EZ ============ -->
+    <section class="section" id="philosophy">
+      <div class="section-head">
+        <span class="section-num">00</span>
+        <h2>Mi ez?</h2>
+      </div>
+      <div class="prose">
+        <p>
+          Ez a dokumentáció egy magyar nyelvű, mérésalapú útmutató PC-k és laptopok
+          játékra történő optimalizálásához. Nem egy újabb „100 Windows tweak, amitől
+          +50 FPS-ed lesz” lista szeretne lenni.
+        </p>
+        <p>A cél az, hogy ne csak azt mutassa meg, <strong>mit állíts át</strong>, hanem azt is, hogy:</p>
+      </div>
+      <div class="tree" style="margin-top: 18px;">
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">·</span><span class="tree-title">mit változtatsz meg</span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">·</span><span class="tree-title">mi történik a háttérben</span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">·</span><span class="tree-title">miért lehet ennek hatása a teljesítményre</span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">·</span><span class="tree-title">mikor érdemes alkalmazni</span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">·</span><span class="tree-title">hogyan tudod megmérni a hatását</span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">·</span><span class="tree-title">milyen eredményt várhatsz</span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">·</span><span class="tree-title">és mikor érdemes inkább visszavonni a módosítást</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ NINCS UNIVERZÁLIS OPTIMALIZÁLÁS ============ -->
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">01</span>
+        <h2>Nincs univerzális optimalizálás</h2>
+      </div>
+      <div class="prose">
+        <p>
+          Két látszólag ugyanolyan gépen sem feltétlenül működik ugyanaz a beállítás.
+          A hardver, a hűtés, a BIOS, a Windows-verzió, a driverek, az energiaellátás,
+          a háttérfolyamatok, a játék motorja és maga a játékterhelés is befolyásolhatja
+          az eredményt.
+        </p>
+        <p>
+          Ezért itt nem az a cél, hogy minden gépen ugyanazokat a beállításokat alkalmazzuk.
+          <strong>A cél egy olyan módszer megtanítása, amellyel mindenki meg tudja találni,
+          hogy a saját rendszerén mi működik és mi nem.</strong>
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ MÉRJ MIELŐTT VÁLTOZTATSZ ============ -->
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">02</span>
+        <h2>Mérj, mielőtt változtatsz</h2>
+      </div>
+      <div class="prose">
+        <p>
+          Egy optimalizálás csak akkor nevezhető optimalizálásnak, ha bizonyítható,
+          hogy a rendszer jobb lett tőle. Ezért a dokumentáció alapelve:
+        </p>
+      </div>
+      <div class="risk-grid" style="grid-template-columns: repeat(5, 1fr);">
+        <div class="risk-card r1"><div class="risk-card-name">Baseline</div></div>
+        <div class="risk-card r2"><div class="risk-card-name">Mérés</div></div>
+        <div class="risk-card r3"><div class="risk-card-name">Módosítás</div></div>
+        <div class="risk-card r2"><div class="risk-card-name">Újramérés</div></div>
+        <div class="risk-card r1"><div class="risk-card-name">Összehasonlítás</div></div>
+      </div>
+      <div class="prose" style="margin-top:20px;">
+        <p>
+          Ha egy tweak után magasabb lett az átlag FPS, de közben romlott a frametime
+          vagy az 1% low, akkor nem tekintjük automatikusan sikeresnek a módosítást.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ FOKOZATOSAN HALADUNK ============ -->
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">03</span>
+        <h2>Fokozatosan haladunk</h2>
+      </div>
+      <div class="prose">
+        <p>
+          Az optimalizálás nem egyetlen nagy változtatás. A dokumentáció az egyszerűbb
+          és könnyebben visszafordítható módosításoktól halad a mélyebb, összetettebb
+          és nagyobb kockázatú beállítások felé.
+        </p>
+        <p>
+          A cél egyszerű: kihozni a fenevadat a gépedből. Megkeresni, mi fogja vissza,
+          és kihozni belőle azt, amire valójában képes.
+        </p>
+      </div>
+      <div class="risk-grid" style="margin-top:20px;">
+        <div class="risk-card r1">
+          <div class="risk-card-level">🟢 SZINT 1</div>
+          <div class="risk-card-name">Alacsony kockázat</div>
+        </div>
+        <div class="risk-card r2">
+          <div class="risk-card-level">🟡 SZINT 2</div>
+          <div class="risk-card-name">Mérésfüggő</div>
+        </div>
+        <div class="risk-card r3">
+          <div class="risk-card-level">🟠 SZINT 3</div>
+          <div class="risk-card-name">Haladó</div>
+        </div>
+        <div class="risk-card r4">
+          <div class="risk-card-level">🔴 SZINT 4</div>
+          <div class="risk-card-name">Instabilitást okozhat</div>
+        </div>
+        <div class="risk-card r5">
+          <div class="risk-card-level">☠️ SZINT 5</div>
+          <div class="risk-card-name">Hardcore</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MIRE SZÁMÍTHATSZ ============ -->
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">04</span>
+        <h2>Mire számíthatsz?</h2>
+      </div>
+      <div class="prose">
+        <p>A dokumentáció fő területei:</p>
+      </div>
+      <div class="tree">
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">01</span><span class="tree-title">Power <span class="sub">— energiagazdálkodás és teljesítményprofilok</span></span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">02</span><span class="tree-title">CPU <span class="sub">— processzor, scheduling és boost viselkedés</span></span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">03</span><span class="tree-title">GPU <span class="sub">— grafikus processzor és driverbeállítások</span></span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">04</span><span class="tree-title">Hálózat <span class="sub">— latency, packet loss és hálózati optimalizálás</span></span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">05</span><span class="tree-title">RAM <span class="sub">— memóriahasználat és memóriakezelés</span></span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">06</span><span class="tree-title">Játék konfiguráció <span class="sub">— játék- és engine-specifikus beállítások</span></span></div>
+        </div>
+        <div class="tree-row" style="cursor:default;">
+          <div class="tree-row-left"><span class="tree-idx">07</span><span class="tree-title">SSD / HDD <span class="sub">— maximális sebesség és hosszabb élettartam</span></span></div>
+        </div>
+      </div>
+      <div class="prose" style="margin-top:18px;">
+        <p>
+          Később további területek is bekerülhetnek, például operációs rendszerrel,
+          hardverjavítással, hibakereséssel vagy diagnosztikával kapcsolatos anyagok.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ A LEGFONTOSABB SZABÁLY ============ -->
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">—</span>
+        <h2>A legfontosabb szabály</h2>
+      </div>
+      <div class="prose" style="border-left: 2px solid var(--purple); padding-left: 20px;">
+        <p><strong>Ne azért módosíts valamit, mert valaki azt mondta, hogy jobb lesz.</strong></p>
+        <p>Először értsd meg, mit csinál. Ezután mérd meg a saját rendszereden. Majd az eredmény alapján dönts.</p>
+        <p>Ez a projekt erről szól.</p>
+      </div>
+    </section>
+
+    <!-- ============ ROADMAP ============ -->
+    <section class="section" id="roadmap">
+      <div class="section-head">
+        <span class="section-num">—</span>
+        <h2>Fejezetek</h2>
+      </div>
+      <div class="tree">
+        <a class="tree-row" href="#">
+          <div class="tree-row-left"><span class="tree-idx">00</span><span class="tree-title">Kezdés <span class="sub">/ filozófia</span></span></div>
+          <span class="tree-status done">kész</span>
+        </a>
+        <a class="tree-row" href="#">
+          <div class="tree-row-left"><span class="tree-idx">01</span><span class="tree-title">Kiindulási állapot</span></div>
+          <span class="tree-status progress">íródik</span>
+        </a>
+        <a class="tree-row" href="#">
+          <div class="tree-row-left"><span class="tree-idx">02</span><span class="tree-title">Power</span></div>
+          <span class="tree-status">tervezett</span>
+        </a>
+        <a class="tree-row" href="#">
+          <div class="tree-row-left"><span class="tree-idx">03</span><span class="tree-title">CPU</span></div>
+          <span class="tree-status">tervezett</span>
+        </a>
+        <a class="tree-row" href="#">
+          <div class="tree-row-left"><span class="tree-idx">04</span><span class="tree-title">GPU</span></div>
+          <span class="tree-status">tervezett</span>
+        </a>
+        <a class="tree-row" href="#">
+          <div class="tree-row-left"><span class="tree-idx">05</span><span class="tree-title">Network</span></div>
+          <span class="tree-status">tervezett</span>
+        </a>
+        <a class="tree-row" href="#">
+          <div class="tree-row-left"><span class="tree-idx">06</span><span class="tree-title">RAM</span></div>
+          <span class="tree-status">tervezett</span>
+        </a>
+        <a class="tree-row" href="#">
+          <div class="tree-row-left"><span class="tree-idx">07</span><span class="tree-title">Game configuration</span></div>
+          <span class="tree-status">tervezett</span>
+        </a>
+        <a class="tree-row" href="#">
+          <div class="tree-row-left"><span class="tree-idx">08</span><span class="tree-title">SSD <span class="sub">/ HDD</span></span></div>
+          <span class="tree-status">tervezett</span>
+        </a>
+      </div>
+    </section>
+
+    <div class="foot">
+      <span>PC Tuning Magyarul — nyílt case study</span>
+      <span class="mono">github.com/KatanaShild/PC-Optimization-Tuning-Magyarul</span>
+    </div>
+
+  </main>
+
+</div>
 
 </body>
 </html>
