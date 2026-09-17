@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>01 · Kiindulási állapot — PC Tuning Magyarul</title>
+<style>
+
+  :root{
+    --bg: #131316;
+    --bg-panel: #1c1c21;
+    --bg-panel-2: #201f26;
+    --border: #2c2b34;
+    --text: #edebf2;
+    --text-dim: #9c9aa8;
+    --purple: #a855f7;
+    --purple-deep: #7c3aed;
+    --cyan: #5fa8d3;
+
+    --risk-1: #6fae7c;
+    --risk-2: #d3b25f;
+    --risk-3: #d38a5f;
+    --risk-4: #d35f6b;
+    --risk-5: #b24bf3;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code, .mono, .data{
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+
+  a{ color: inherit; text-decoration: none; }
+
+  /* ---------- background glow layer ---------- */
+  .glow-field{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .glow-field::before{
+    content:"";
+    position:absolute;
+    top: -20%;
+    left: 55%;
+    width: 60vw;
+    height: 60vw;
+    background: radial-gradient(circle, rgba(168,85,247,0.16) 0%, rgba(168,85,247,0) 65%);
+  }
+  .glow-field::after{
+    content:"";
+    position:absolute;
+    bottom: -25%;
+    left: -10%;
+    width: 50vw;
+    height: 50vw;
+    background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, rgba(124,58,237,0) 65%);
+  }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+
+  @media (max-width: 860px){
+    .shell{ grid-template-columns: 1fr; }
+    .nav{ display:none; }
+  }
+
+  /* ---------- nav ---------- */
+  .nav{
+    border-right: 1px solid var(--border);
+    padding: 32px 24px 48px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .nav-brand{
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .nav-brand a{ display:block; }
+  .nav-brand span{ color: var(--purple); }
+
+  .nav-sub{
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 36px;
+  }
+
+  .nav-group{ margin-bottom: 22px; }
+
+  .nav-group-title{
+    display:flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+    padding: 4px 0;
+  }
+
+  a.nav-group-title{ transition: color .15s ease; }
+  a.nav-group-title:hover{ color: var(--purple); }
+
+  .nav-group.active .nav-group-title{ color: var(--purple); }
+
+  .nav-group-title .idx{
+    color: var(--text-dim);
+    font-size: 11px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+  .nav-group.active .nav-group-title .idx{ color: var(--purple); }
+
+  .nav-children{
+    margin: 4px 0 0 18px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .nav-group.active .nav-children{ border-left-color: var(--purple-deep); }
+
+  .nav-children a{
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 2px 0;
+    transition: color .15s ease;
+  }
+  .nav-children a:hover{ color: var(--purple); }
+  .nav-children a.current{ color: var(--cyan); }
+
+  .risk-dot{
+    display:inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+
+  /* ---------- main ---------- */
+  .main{
+    padding: 64px 56px 96px;
+    max-width: 900px;
+  }
+  @media (max-width: 860px){
+    .main{ padding: 40px 24px 72px; }
+  }
+
+  .eyebrow-row{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+
+  .status-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    font-size: 12px;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 5px 11px 5px 9px;
+    border-radius: 100px;
+    background: var(--bg-panel);
+  }
+  .status-pill .pulse{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--purple);
+    box-shadow: 0 0 8px 2px rgba(168,85,247,0.7);
+  }
+
+  .back-link{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    transition: color .15s ease;
+  }
+  .back-link:hover{ color: var(--purple); }
+
+  h1{
+    font-size: clamp(32px, 4.2vw, 46px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 650;
+    margin: 0 0 20px;
+  }
+
+  .lede{
+    font-size: 16.5px;
+    color: var(--text-dim);
+    max-width: 62ch;
+    margin: 0 0 56px;
+  }
+  .lede strong{ color: var(--text); font-weight: 550; }
+
+  /* ---------- chapter progress rail ---------- */
+  .rail{
+    display:flex;
+    gap: 6px;
+    margin-bottom: 56px;
+    flex-wrap: wrap;
+  }
+  .rail a{
+    font-size: 11.5px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .rail a:hover{ border-color: var(--purple-deep); color: var(--text); }
+
+  /* ---------- subsection ---------- */
+  .sub-section{
+    margin-bottom: 64px;
+    scroll-margin-top: 32px;
+  }
+
+  .sub-head{
+    display:flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 8px;
+  }
+
+  .sub-num{
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--purple);
+  }
+
+  .sub-head h2{
+    font-size: 21px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .sub-goal{
+    color: var(--text-dim);
+    font-size: 14.5px;
+    max-width: 62ch;
+    margin: 0 0 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sub-goal .label{
+    color: var(--cyan);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    display:block;
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  .point-list{
+    display:flex;
+    flex-direction:column;
+    gap: 3px;
+  }
+
+  .point{
+    display:flex;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .point:hover{ background: var(--bg-panel); border-color: var(--border); }
+
+  .point-mark{
+    color: var(--purple);
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: 13px;
+  }
+
+  .point-text{
+    font-size: 14.5px;
+    color: var(--text);
+  }
+  .point-text .dim{ color: var(--text-dim); }
+
+  /* ---------- tool badges ---------- */
+  .badge-row{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 6px 0 4px 40px;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap: 6px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    background: rgba(95,168,211,0.08);
+    border: 1px solid rgba(95,168,211,0.25);
+    padding: 5px 10px;
+    border-radius: 6px;
+  }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    display:flex;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 10px;
+    margin: 18px 0 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+  }
+
+  .callout-icon{
+    font-size: 17px;
+    flex-shrink: 0;
+    line-height: 1.3;
+  }
+
+  .callout-body{
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .callout-body strong{ color: var(--text); font-weight: 550; }
+
+  .callout-tip{ border-left: 3px solid var(--purple); }
+  .callout-warn{ border-left: 3px solid var(--risk-4); }
+  .callout-warn .callout-icon{ color: var(--risk-4); }
+  .callout-tip .callout-icon{ color: var(--purple); }
+
+  /* ---------- footer nav (prev/next) ---------- */
+  .chapter-nav{
+    display:flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 80px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+
+  .chapter-nav a{
+    flex: 1;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-panel);
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .chapter-nav a:hover{ border-color: var(--purple-deep); transform: translateY(-1px); }
+  .chapter-nav .dir{
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    display:block;
+    margin-bottom: 4px;
+  }
+  .chapter-nav .name{ font-size: 14.5px; font-weight: 550; }
+  .chapter-nav .next{ text-align: right; }
+
+</style>
+</head>
+<body>
+
+<div class="glow-field"></div>
+
+<div class="shell">
+
+  <!-- ============ NAV ============ -->
+  <nav class="nav">
+    <div class="nav-brand"><a href="index.html">PC<span>Tuning</span>.hu</a></div>
+    <div class="nav-sub">mérés-alapú optimalizálás</div>
+
+    <div class="nav-group">
+      <a class="nav-group-title" href="index.html#philosophy"><span class="idx">00</span> Kezdés / filozófia</a>
+    </div>
+
+    <div class="nav-group active">
+      <a class="nav-group-title" href="01.html"><span class="idx">01</span> Kiindulási állapot</a>
+      <div class="nav-children">
+        <a href="#hardver" class="current">Hardver felismerése</a>
+        <a href="#driver">Driver állapot</a>
+        <a href="#homerseklet">Hőmérsékletek</a>
+        <a href="#orajel">Órajelek</a>
+        <a href="#fps">FPS / frametime</a>
+        <a href="#kihasznaltsag">CPU / GPU kihasználtság</a>
+        <a href="#baseline">Benchmark + baseline</a>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-1)"></span><span class="idx">02</span> Power</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-2)"></span><span class="idx">03</span> CPU</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-2)"></span><span class="idx">04</span> GPU</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">05</span> Network</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-2)"></span><span class="idx">06</span> RAM</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">07</span> Game config</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">08</span> SSD / HDD</div>
+    </div>
+  </nav>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <a class="back-link" href="index.html">← Vissza a főoldalra</a>
+
+    <div class="eyebrow-row">
+      <span class="status-pill"><span class="pulse"></span>01 · kiindulási állapot</span>
+    </div>
+
+    <h1>Mielőtt bármit átállítasz, mérd fel, hol tartasz</h1>
+    <p class="lede">
+      Ez a fejezet nem optimalizál semmit — <strong>állapotot rögzít</strong>. A cél egy
+      olyan pontos kép a gépedről és a jelenlegi teljesítményről, amihez a következő
+      fejezetek minden módosítását vissza tudod majd mérni.
+    </p>
+
+    <div class="rail">
+      <a href="#hardver">Hardver</a>
+      <a href="#driver">Driver</a>
+      <a href="#homerseklet">Hőmérséklet</a>
+      <a href="#orajel">Órajel</a>
+      <a href="#fps">FPS/frametime</a>
+      <a href="#kihasznaltsag">Kihasználtság</a>
+      <a href="#baseline">Baseline</a>
+    </div>
+
+    <!-- ============ HARDVER FELISMERÉSE ============ -->
+    <section class="sub-section" id="hardver">
+      <div class="sub-head">
+        <span class="sub-num">01.1</span>
+        <h2>Hardver felismerése</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Pontosan tudni, mi van a gépben, mielőtt bármit módosítunk — mert a legtöbb
+        tanács hardverfüggő.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">CPU / GPU / RAM / alaplap pontos modellje, BIOS verzió stb. — minden információ kigyűjtésére a HWiNFO64 vagy a CPU-Z ajánlott</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">RAM: csatornakiosztás <span class="dim">(single/dual channel)</span>, tényleges frekvencia — nem csak amit a gép kiír, érdemes a gyártó oldalán is megnézni</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Tárhely: SSD vagy HDD, NVMe vagy SATA</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Notebooknál külön fontos: van-e hibrid GPU <span class="dim">(Optimus / Advanced Optimus)</span> — ez befolyásolja a driver-beállítások egy részét</span>
+        </div>
+      </div>
+      <div class="badge-row">
+        <span class="badge">HWiNFO64</span>
+        <span class="badge">CPU-Z</span>
+      </div>
+    </section>
+
+    <!-- ============ DRIVER ÁLLAPOT ============ -->
+    <section class="sub-section" id="driver">
+      <div class="sub-head">
+        <span class="sub-num">01.2</span>
+        <h2>Driver állapot</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Egy elavult vagy hibás driver önmagában is okozhat teljesítményproblémát,
+        mielőtt bármit tweakelnénk.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">GPU driver verzió + kiadási dátum <span class="dim">(NVIDIA / AMD / Intel)</span></span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Chipset driver — alaplapnál/notebooknál kritikus</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Hálózati kártya driver</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Javaslat: tiszta GPU driver cseréhez, ha gyanús a jelenlegi állapot</span>
+        </div>
+      </div>
+      <div class="badge-row">
+        <span class="badge">DDU — Display Driver Uninstaller</span>
+      </div>
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠</span>
+        <div class="callout-body">
+          <strong>A Driver Booster és hasonló automata driver-frissítő programok kerülendők</strong> —
+          99%-ban elavult vagy nem megfelelő drivert fognak felrakni.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HŐMÉRSÉKLETEK ============ -->
+    <section class="sub-section" id="homerseklet">
+      <div class="sub-head">
+        <span class="sub-num">01.3</span>
+        <h2>Hőmérsékletek</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Baseline hőmérséklet terhelés alatt és nyugalomban, hogy lásd, van-e már itt
+        szűk keresztmetszet (throttling).
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">CPU / GPU hőmérséklet terhelés alatt — sensor logging, vagy játék közben is monitorozható</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Van-e throttle esemény <span class="dim">(csökkenti-e a CPU az órajelét hő miatt)</span></span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Notebooknál: az alaplap / VRM hőmérséklete is releváns lehet</span>
+        </div>
+      </div>
+      <div class="badge-row">
+        <span class="badge">HWiNFO64</span>
+        <span class="badge">MSI Afterburner</span>
+      </div>
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">
+          Ha régen volt már, vagy magas a kiindulási hőmérséklet, mindenképp érdemes
+          egy <strong>gép-takarítás és újrapasztázás</strong> — ez stabilabb alapot ad, és
+          önmagában is okozhat teljesítménynövekedést. Emellett a hardver élettartamát
+          is megnöveljük, ha hűvösebben jár.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ÓRAJELEK ============ -->
+    <section class="sub-section" id="orajel">
+      <div class="sub-head">
+        <span class="sub-num">01.4</span>
+        <h2>Órajelek</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Tényleges vs. elvárt órajel — sokszor a gép "alulteljesít" pusztán mert a boost
+        nem tud rendesen felmenni, vagy mert sok gép gyárilag fojtva van.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">CPU boost órajel terhelés alatt <span class="dim">(single-core vs. all-core)</span></span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">GPU core / memory clock terhelés alatt</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Van-e clock throttle <span class="dim">(hő, power limit, vagy voltage miatt)</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FPS / FRAMETIME ============ -->
+    <section class="sub-section" id="fps">
+      <div class="sub-head">
+        <span class="sub-num">01.5</span>
+        <h2>FPS / frametime</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Nem elég az átlag FPS — a frametime konzisztencia (1% low, 0.1% low) mondja
+        meg, mennyire "sima" a játékélmény.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Élő monitorozásra a MSI Afterburner + RTSS páros ajánlott</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Mérünk: átlag FPS, 1% low, 0.1% low, frametime graph</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Érdemes kirakni a kijelzőre is: GPU temperature, GPU usage, GPU memory usage, GPU core clock, CPU temperature, CPU usage, CPU clock, RAM usage, framerate, frametime</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Ugyanaz a teszt-jelenet / replay minden méréshez, hogy összehasonlítható legyen — erre alkalmas a Benchmark mód</span>
+        </div>
+      </div>
+      <div class="badge-row">
+        <span class="badge">MSI Afterburner</span>
+        <span class="badge">RTSS</span>
+      </div>
+    </section>
+
+    <!-- ============ CPU / GPU KIHASZNÁLTSÁG ============ -->
+    <section class="sub-section" id="kihasznaltsag">
+      <div class="sub-head">
+        <span class="sub-num">01.6</span>
+        <h2>CPU / GPU kihasználtság</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Eldönteni, hogy a rendszer CPU-bound vagy GPU-bound-e — ez dönti el, melyik
+        fejezet (CPU vagy GPU) fog majd többet segíteni, és mire érdemes nagyobb
+        hangsúlyt fektetni.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Kihasználtság % játék közben — HWiNFO64, Task Manager Performance fül, vagy Afterburner OSD</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Ha a GPU 99% és a CPU 60% alatt van → valószínűleg GPU-bound</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Ha fordítva → CPU-bound <span class="dim">(ilyenkor egy GPU-upgrade nem sokat segítene)</span></span>
+        </div>
+      </div>
+      <div class="badge-row">
+        <span class="badge">HWiNFO64</span>
+        <span class="badge">Task Manager</span>
+        <span class="badge">Afterburner OSD</span>
+      </div>
+    </section>
+
+    <!-- ============ BENCHMARK + BASELINE ============ -->
+    <section class="sub-section" id="baseline">
+      <div class="sub-head">
+        <span class="sub-num">01.7</span>
+        <h2>Benchmark + baseline</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Ez az a szám, amihez a fejezet végén minden módosítást vissza fogunk mérni.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Érdemes folyamatosan rögzíteni / felírni a mérési adatokat: átlag FPS, 1% low, hőmérsékletek, órajelek stb. — ebből fogjuk látni, mi változott</span>
+        </div>
+      </div>
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠</span>
+        <div class="callout-body">
+          <strong>Tuning esetén érdemes a Benchmarkot a végére hagyni</strong>, és inkább
+          rendes játék közben tesztelni — a játék hamarabb tud crashelni, ha túl lett
+          húzva a rendszer.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PREV / NEXT ============ -->
+    <div class="chapter-nav">
+      <a href="index.html" class="prev">
+        <span class="dir">← előző</span>
+        <span class="name">00 — Kezdés / filozófia</span>
+      </a>
+      <a href="#" class="next">
+        <span class="dir">következő →</span>
+        <span class="name">02 — Power</span>
+      </a>
+    </div>
+
+  </main>
+
+</div>
+
+</body>
+</html>
