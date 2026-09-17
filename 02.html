@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>02 · Power — PC Tuning Magyarul</title>
+<style>
+
+  :root{
+    --bg: #131316;
+    --bg-panel: #1c1c21;
+    --bg-panel-2: #201f26;
+    --border: #2c2b34;
+    --text: #edebf2;
+    --text-dim: #9c9aa8;
+    --purple: #a855f7;
+    --purple-deep: #7c3aed;
+    --cyan: #5fa8d3;
+
+    --risk-1: #6fae7c;
+    --risk-2: #d3b25f;
+    --risk-3: #d38a5f;
+    --risk-4: #d35f6b;
+    --risk-5: #b24bf3;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code, .mono, .data{
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+
+  a{ color: inherit; text-decoration: none; }
+
+  /* ---------- background glow layer ---------- */
+  .glow-field{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .glow-field::before{
+    content:"";
+    position:absolute;
+    top: -20%;
+    left: 55%;
+    width: 60vw;
+    height: 60vw;
+    background: radial-gradient(circle, rgba(168,85,247,0.16) 0%, rgba(168,85,247,0) 65%);
+  }
+  .glow-field::after{
+    content:"";
+    position:absolute;
+    bottom: -25%;
+    left: -10%;
+    width: 50vw;
+    height: 50vw;
+    background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, rgba(124,58,237,0) 65%);
+  }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+
+  @media (max-width: 860px){
+    .shell{ grid-template-columns: 1fr; }
+    .nav{ display:none; }
+  }
+
+  /* ---------- nav ---------- */
+  .nav{
+    border-right: 1px solid var(--border);
+    padding: 32px 24px 48px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .nav-brand{
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+  .nav-brand a{ display:block; }
+  .nav-brand span{ color: var(--purple); }
+
+  .nav-sub{
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 36px;
+  }
+
+  .nav-group{ margin-bottom: 22px; }
+
+  .nav-group-title{
+    display:flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+    padding: 4px 0;
+  }
+
+  a.nav-group-title{ transition: color .15s ease; }
+  a.nav-group-title:hover{ color: var(--purple); }
+
+  .nav-group.active .nav-group-title{ color: var(--purple); }
+
+  .nav-group-title .idx{
+    color: var(--text-dim);
+    font-size: 11px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+  .nav-group.active .nav-group-title .idx{ color: var(--purple); }
+
+  .nav-children{
+    margin: 4px 0 0 18px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .nav-group.active .nav-children{ border-left-color: var(--purple-deep); }
+
+  .nav-children a{
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 2px 0;
+    transition: color .15s ease;
+  }
+  .nav-children a:hover{ color: var(--purple); }
+  .nav-children a.current{ color: var(--cyan); }
+
+  .risk-dot{
+    display:inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+
+  /* ---------- main ---------- */
+  .main{
+    padding: 64px 56px 96px;
+    max-width: 900px;
+  }
+  @media (max-width: 860px){
+    .main{ padding: 40px 24px 72px; }
+  }
+
+  .eyebrow-row{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+
+  .status-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    font-size: 12px;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 5px 11px 5px 9px;
+    border-radius: 100px;
+    background: var(--bg-panel);
+  }
+  .status-pill .pulse{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--purple);
+    box-shadow: 0 0 8px 2px rgba(168,85,247,0.7);
+  }
+
+  .risk-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size: 12px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    padding: 5px 11px;
+    border-radius: 100px;
+    border: 1px solid rgba(111,174,122,0.35);
+    background: rgba(111,174,122,0.08);
+    color: var(--risk-1);
+  }
+
+  .back-link{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    transition: color .15s ease;
+  }
+  .back-link:hover{ color: var(--purple); }
+
+  h1{
+    font-size: clamp(32px, 4.2vw, 46px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 650;
+    margin: 0 0 20px;
+  }
+
+  .lede{
+    font-size: 16.5px;
+    color: var(--text-dim);
+    max-width: 62ch;
+    margin: 0 0 56px;
+  }
+  .lede strong{ color: var(--text); font-weight: 550; }
+
+  /* ---------- chapter progress rail ---------- */
+  .rail{
+    display:flex;
+    gap: 6px;
+    margin-bottom: 56px;
+    flex-wrap: wrap;
+  }
+  .rail a{
+    font-size: 11.5px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .rail a:hover{ border-color: var(--purple-deep); color: var(--text); }
+
+  /* ---------- subsection ---------- */
+  .sub-section{
+    margin-bottom: 64px;
+    scroll-margin-top: 32px;
+  }
+
+  .sub-head{
+    display:flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 8px;
+  }
+
+  .sub-num{
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--purple);
+  }
+
+  .sub-head h2{
+    font-size: 21px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .sub-goal{
+    color: var(--text-dim);
+    font-size: 14.5px;
+    max-width: 62ch;
+    margin: 0 0 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sub-goal .label{
+    color: var(--cyan);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    display:block;
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  .point-list{
+    display:flex;
+    flex-direction:column;
+    gap: 3px;
+  }
+
+  .point{
+    display:flex;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .point:hover{ background: var(--bg-panel); border-color: var(--border); }
+
+  .point-mark{
+    color: var(--purple);
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: 13px;
+  }
+
+  .point-text{
+    font-size: 14.5px;
+    color: var(--text);
+  }
+  .point-text .dim{ color: var(--text-dim); }
+
+  /* ---------- step list (numbered how-to) ---------- */
+  .step-block{
+    margin: 6px 0 26px;
+  }
+
+  .step-block-label{
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--purple);
+    letter-spacing: 0.02em;
+    margin-bottom: 12px;
+    display:block;
+  }
+
+  .steps{
+    display:flex;
+    flex-direction:column;
+    gap: 0;
+    border-left: 1px solid var(--border);
+    margin-left: 13px;
+  }
+
+  .step{
+    position: relative;
+    padding: 2px 0 20px 28px;
+  }
+  .step:last-child{ padding-bottom: 2px; }
+
+  .step::before{
+    content: attr(data-n);
+    position: absolute;
+    left: -13px;
+    top: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--bg-panel);
+    border: 1px solid var(--purple-deep);
+    color: var(--purple);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .step-text{
+    font-size: 14.5px;
+    padding-top: 2px;
+  }
+  .step-text .dim{ color: var(--text-dim); }
+
+  /* ---------- code block ---------- */
+  .code-block{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 10px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--cyan);
+    overflow-x: auto;
+  }
+  .code-block .prompt{ color: var(--text-dim); flex-shrink: 0; }
+
+  /* ---------- settings table ---------- */
+  .settings-list{
+    display:flex;
+    flex-direction:column;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 6px 0 4px;
+  }
+
+  .settings-row{
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    background: var(--bg-panel);
+    padding: 12px 16px;
+    font-size: 13.5px;
+  }
+
+  .settings-row .path{ color: var(--text-dim); }
+  .settings-row .path b{ color: var(--text); font-weight: 500; }
+
+  .settings-row .val{
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--cyan);
+    flex-shrink: 0;
+    background: rgba(95,168,211,0.08);
+    border: 1px solid rgba(95,168,211,0.25);
+    padding: 2px 9px;
+    border-radius: 5px;
+  }
+
+  /* ---------- tool badges ---------- */
+  .badge-row{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 6px 0 4px 40px;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap: 6px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    background: rgba(95,168,211,0.08);
+    border: 1px solid rgba(95,168,211,0.25);
+    padding: 5px 10px;
+    border-radius: 6px;
+  }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    display:flex;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 10px;
+    margin: 18px 0 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+  }
+
+  .callout-icon{
+    font-size: 17px;
+    flex-shrink: 0;
+    line-height: 1.3;
+  }
+
+  .callout-body{
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .callout-body strong{ color: var(--text); font-weight: 550; }
+
+  .callout-tip{ border-left: 3px solid var(--purple); }
+  .callout-warn{ border-left: 3px solid var(--risk-4); }
+  .callout-info{ border-left: 3px solid var(--cyan); }
+  .callout-warn .callout-icon{ color: var(--risk-4); }
+  .callout-tip .callout-icon{ color: var(--purple); }
+  .callout-info .callout-icon{ color: var(--cyan); }
+
+  /* ---------- footer nav (prev/next) ---------- */
+  .chapter-nav{
+    display:flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 80px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+
+  .chapter-nav a{
+    flex: 1;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-panel);
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .chapter-nav a:hover{ border-color: var(--purple-deep); transform: translateY(-1px); }
+  .chapter-nav .dir{
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    display:block;
+    margin-bottom: 4px;
+  }
+  .chapter-nav .name{ font-size: 14.5px; font-weight: 550; }
+  .chapter-nav .next{ text-align: right; }
+
+</style>
+</head>
+<body>
+
+<div class="glow-field"></div>
+
+<div class="shell">
+
+  <!-- ============ NAV ============ -->
+  <nav class="nav">
+    <div class="nav-brand"><a href="index.html">PC/<span>Tuning</span>/Optimization</a></div>
+    <div class="nav-sub">mérés-alapú optimalizálás</div>
+
+    <div class="nav-group">
+      <a class="nav-group-title" href="index.html#philosophy"><span class="idx">00</span> Kezdés / filozófia</a>
+    </div>
+
+    <div class="nav-group">
+      <a class="nav-group-title" href="01.html"><span class="idx">01</span> Kiindulási állapot</a>
+    </div>
+
+    <div class="nav-group active">
+      <a class="nav-group-title" href="02.html"><span class="idx">02</span> Power</a>
+      <div class="nav-children">
+        <a href="#windows-power" class="current">Windows power management</a>
+        <a href="#power-plan">Power Plan</a>
+        <a href="#processor-power">Processor power management</a>
+        <a href="#boost">Boost</a>
+        <a href="#core-parking">Core parking</a>
+        <a href="#idle-policy">Idle policy</a>
+        <a href="#kompromisszum">Energiagazdálkodási kompromisszumok</a>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-2)"></span><span class="idx">03</span> CPU</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-2)"></span><span class="idx">04</span> GPU</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">05</span> Network</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-2)"></span><span class="idx">06</span> RAM</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">07</span> Game config</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">08</span> SSD / HDD</div>
+    </div>
+  </nav>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <a class="back-link" href="index.html">← Vissza a főoldalra</a>
+
+    <div class="eyebrow-row">
+      <span class="status-pill"><span class="pulse"></span>02 · power</span>
+      <span class="risk-pill">🟢 SZINT 1 — alacsony kockázat</span>
+    </div>
+
+    <h1>Ne engedd, hogy a Windows spóroljon a teljesítményedből</h1>
+    <p class="lede">
+      A Windows alapértelmezett energiakezelése folyamatosan visszafogja a CPU-t,
+      hogy fogyasztást spóroljon — ez játék közben mikro-akadásokhoz vezethet. Ebben
+      a fejezetben egy saját, teljesítményre optimalizált energiasémát építünk fel,
+      lépésről lépésre.
+    </p>
+
+    <div class="rail">
+      <a href="#windows-power">Windows power mgmt</a>
+      <a href="#power-plan">Power Plan</a>
+      <a href="#processor-power">Processor</a>
+      <a href="#boost">Boost</a>
+      <a href="#core-parking">Core parking</a>
+      <a href="#idle-policy">Idle policy</a>
+      <a href="#kompromisszum">Kompromisszumok</a>
+    </div>
+
+    <!-- ============ WINDOWS POWER MANAGEMENT ============ -->
+    <section class="sub-section" id="windows-power">
+      <div class="sub-head">
+        <span class="sub-num">02.1</span>
+        <h2>Windows power management</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Megérteni, hogy a Windows alapból is "spórol" a teljesítményből — ezt kell
+        feloldani, mielőtt bármi mélyebbe belemennénk.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Windows-ban alapértelmezetten a <strong>Kiegyensúlyozott (Balanced)</strong> terv fut, ami folyamatosan le-fel kapcsolgatja a CPU-t a fogyasztás miatt — ez játék közben mikro-akadásokat okozhat</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Az <strong>Ultimate Performance</strong> vagy egy egyedi terv beállítása ajánlott — ez alapból el van rejtve, <code>powercfg</code> paranccsal kell előhozni</span>
+        </div>
+      </div>
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ</span>
+        <div class="callout-body">
+          Laptopnál ez plusz meleget és rövidebb akkumulátor-időt is jelent — ha viszont
+          <strong>mindig töltőről használod</strong> a laptopot játék közben, ez egyáltalán
+          nem okoz gondot.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ POWER PLAN ============ -->
+    <section class="sub-section" id="power-plan">
+      <div class="sub-head">
+        <span class="sub-num">02.2</span>
+        <h2>Power Plan</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Egy saját, minden értékében maximumra állított terv, ami nem enged vissza
+        semmit spórolásból.
+      </p>
+
+      <div class="point-list" style="margin-bottom: 10px;">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Alapnak az <strong>Ultimate Performance</strong> energia sémát ajánlom</span>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <span class="step-block-label">BEÁLLÍTÁS MENETE</span>
+        <div class="steps">
+          <div class="step" data-n="1">
+            <div class="step-text">Nyomj <code>Win + R</code>-t, írd be, hogy <code>cmd</code>, majd Enter — megnyílik a parancssor.</div>
+          </div>
+          <div class="step" data-n="2">
+            <div class="step-text">
+              Írd be a következő parancsot:
+              <div class="code-block"><span class="prompt">&gt;</span> powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61</div>
+            </div>
+          </div>
+          <div class="step" data-n="3">
+            <div class="step-text">Ennek hatására megjelenik egy új energiaséma a gépen, <strong>Ultimate Performance</strong> vagy <strong>Maximális teljesítmény</strong> néven.</div>
+          </div>
+          <div class="step" data-n="4">
+            <div class="step-text">Lépj be az <span class="dim">Energiagazdálkodás</span> beállításaiba, és jelöld be az új sémát — csak ekkor lesz aktív.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="point-list" style="margin-bottom: 10px;">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Érdemes ezután tovább szerkeszteni a sémát (<span class="dim">Speciális beállítások módosítása</span>):</span>
+        </div>
+      </div>
+
+      <div class="settings-list">
+        <div class="settings-row">
+          <span class="path">Processor power management → <b>Minimum processor state</b></span>
+          <span class="val">100%</span>
+        </div>
+        <div class="settings-row">
+          <span class="path">Processor power management → <b>Maximum processor state</b></span>
+          <span class="val">100%</span>
+        </div>
+        <div class="settings-row">
+          <span class="path"><b>Core Parking</b> minimum</span>
+          <span class="val">100%</span>
+        </div>
+        <div class="settings-row">
+          <span class="path"><b>System cooling policy</b></span>
+          <span class="val">Active</span>
+        </div>
+        <div class="settings-row">
+          <span class="path">PCI Express → <b>Link State Power Management</b></span>
+          <span class="val">Off</span>
+        </div>
+        <div class="settings-row">
+          <span class="path"><b>USB Selective Suspend</b></span>
+          <span class="val">Off</span>
+        </div>
+        <div class="settings-row">
+          <span class="path">Sleep → <b>Allow wake timers</b></span>
+          <span class="val">Never</span>
+        </div>
+        <div class="settings-row">
+          <span class="path">Wireless Adapter Settings → <b>Power Saving Mode</b></span>
+          <span class="val">Max Performance</span>
+        </div>
+        <div class="settings-row">
+          <span class="path">Hard disk → <b>Turn off hard disk after</b></span>
+          <span class="val">Never</span>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">
+          Ha a processzornak van <strong>integrált grafikus kártyája</strong>, azt is
+          érdemes itt Maximum Performance-re állítani.
+        </div>
+      </div>
+
+      <div class="point-list" style="margin-top: 18px;">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">CPU minimum és maximum állapot: mindkettő 100%-ra <span class="dim">(ne engedje le magát alacsonyabb állapotba)</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROCESSOR POWER MANAGEMENT ============ -->
+    <section class="sub-section" id="processor-power">
+      <div class="sub-head">
+        <span class="sub-num">02.3</span>
+        <h2>Processor power management</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        A CPU saját belső energiakezelési logikáját (EPP / Speed Shift) is a
+        teljesítmény felé tolni.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">EPP (Energy Performance Preference) / Speed Shift érték: <strong>0</strong> <span class="dim">(maximális teljesítmény irányba)</span></span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Ez a Power Plan haladó beállításai közt érhető el, néhol csak regisztri-szerkesztéssel jelenik meg</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ BOOST ============ -->
+    <section class="sub-section" id="boost">
+      <div class="sub-head">
+        <span class="sub-num">02.4</span>
+        <h2>Boost</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Biztosítani, hogy a CPU ténylegesen fel tudjon menni a hirdetett boost
+        órajelére, ne csak papíron.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Turbo Boost / PBO legyen engedélyezve a Power Planben</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Ha az órajel a 01. fejezetben mért adatok szerint nem éri el az elvárt boost-ot terhelés alatt, a hiba oka itt, vagy a hőmérséklet/power limit fejezetben (03 – CPU) keresendő</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CORE PARKING ============ -->
+    <section class="sub-section" id="core-parking">
+      <div class="sub-head">
+        <span class="sub-num">02.5</span>
+        <h2>Core parking</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Elkerülni, hogy a Windows "pihentessen" magokat, amikor épp szükség lenne rájuk.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Core Parking teljesen kikapcsolva <span class="dim">(minimum = maximum = 100%)</span> — így egy mag sem kerül parkoltatásra terhelés közben</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Ez különösen fontos alacsonyabb magszámú CPU-knál <span class="dim">(pl. 4 magos, HT nélküli processzoroknál)</span>, ahol egy leparkolt mag érezhető teljesítménycsökkenést okozhat</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ IDLE POLICY ============ -->
+    <section class="sub-section" id="idle-policy">
+      <div class="sub-head">
+        <span class="sub-num">02.6</span>
+        <h2>Idle policy</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        A rendszer ne lépjen be energiatakarékos állapotokba (C-states) akkor,
+        amikor a válaszidő számít.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Idle/Sleep timerek <strong>Never</strong>-re állítva</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">A mély C-state-ek (C3+) viselkedését van, aki haladó szinten is korlátozza — ez inkább a 03 – CPU fejezetbe, ThrottleStop/BIOS szintre tartozik, itt csak jelöljük</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ENERGIAGAZDÁLKODÁSI KOMPROMISSZUMOK ============ -->
+    <section class="sub-section" id="kompromisszum">
+      <div class="sub-head">
+        <span class="sub-num">02.7</span>
+        <h2>Energiagazdálkodási kompromisszumok</h2>
+      </div>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Asztali gépeknél ezzel csak nyerni lehet — folyamatos az áramellátás, nincs kockázat</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Laptopnál számításba kell venni, hogy szoktuk-e csak akkumulátorról használni, mert így gyorsabban merülhet. Ha mindig töltőről játszol, kockázatmentes, mert folyamatos az áramellátás</span>
+        </div>
+      </div>
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">
+          <strong>Kompromisszum laptophoz:</strong> mivel laptopnál jelentősen rövidebb
+          lehet az akkumulátor-üzemidő, érdemes két külön energiasémát fenntartani —
+          akkumulátoros használatnál a gyári séma, játéknál pedig átváltás az
+          Ultimate Performance-re.
+        </div>
+      </div>
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠</span>
+        <div class="callout-body">
+          Ez a fejezet tudatosan a teljesítmény felé billen. Ha valaki elsősorban
+          mobilitásra/akkumulátorra optimalizál, <strong>ne ezt a tervet használja
+          alapértelmezettként.</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PREV / NEXT ============ -->
+    <div class="chapter-nav">
+      <a href="01.html" class="prev">
+        <span class="dir">← előző</span>
+        <span class="name">01 — Kiindulási állapot</span>
+      </a>
+      <a href="#" class="next">
+        <span class="dir">következő →</span>
+        <span class="name">03 — CPU</span>
+      </a>
+    </div>
+
+  </main>
+
+</div>
+
+</body>
+</html>
