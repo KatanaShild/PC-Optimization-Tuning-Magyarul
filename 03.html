@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 · CPU — PC Tuning Magyarul</title>
+<style>
+
+  :root{
+    --bg: #131316;
+    --bg-panel: #1c1c21;
+    --bg-panel-2: #201f26;
+    --border: #2c2b34;
+    --text: #edebf2;
+    --text-dim: #9c9aa8;
+    --purple: #a855f7;
+    --purple-deep: #7c3aed;
+    --cyan: #5fa8d3;
+
+    --risk-1: #6fae7c;
+    --risk-2: #d3b25f;
+    --risk-3: #d38a5f;
+    --risk-4: #d35f6b;
+    --risk-5: #b24bf3;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code, .mono, .data{
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+
+  a{ color: inherit; text-decoration: none; }
+
+  /* ---------- background glow layer ---------- */
+  .glow-field{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .glow-field::before{
+    content:"";
+    position:absolute;
+    top: -20%;
+    left: 55%;
+    width: 60vw;
+    height: 60vw;
+    background: radial-gradient(circle, rgba(168,85,247,0.16) 0%, rgba(168,85,247,0) 65%);
+  }
+  .glow-field::after{
+    content:"";
+    position:absolute;
+    bottom: -25%;
+    left: -10%;
+    width: 50vw;
+    height: 50vw;
+    background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, rgba(124,58,237,0) 65%);
+  }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+
+  @media (max-width: 860px){
+    .shell{ grid-template-columns: 1fr; }
+    .nav{ display:none; }
+  }
+
+  /* ---------- nav ---------- */
+  .nav{
+    border-right: 1px solid var(--border);
+    padding: 32px 24px 48px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .nav-brand{
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+  .nav-brand a{ display:block; }
+  .nav-brand span{ color: var(--purple); }
+
+  .nav-sub{
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 36px;
+  }
+
+  .nav-group{ margin-bottom: 22px; }
+
+  .nav-group-title{
+    display:flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+    padding: 4px 0;
+  }
+
+  a.nav-group-title{ transition: color .15s ease; }
+  a.nav-group-title:hover{ color: var(--purple); }
+
+  .nav-group.active .nav-group-title{ color: var(--purple); }
+
+  .nav-group-title .idx{
+    color: var(--text-dim);
+    font-size: 11px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+  .nav-group.active .nav-group-title .idx{ color: var(--purple); }
+
+  .nav-children{
+    margin: 4px 0 0 18px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .nav-group.active .nav-children{ border-left-color: var(--purple-deep); }
+
+  .nav-children a{
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 2px 0;
+    transition: color .15s ease;
+  }
+  .nav-children a:hover{ color: var(--purple); }
+  .nav-children a.current{ color: var(--cyan); }
+
+  .risk-dot{
+    display:inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+
+  /* ---------- main ---------- */
+  .main{
+    padding: 64px 56px 96px;
+    max-width: 900px;
+  }
+  @media (max-width: 860px){
+    .main{ padding: 40px 24px 72px; }
+  }
+
+  .eyebrow-row{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+
+  .status-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    font-size: 12px;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 5px 11px 5px 9px;
+    border-radius: 100px;
+    background: var(--bg-panel);
+  }
+  .status-pill .pulse{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--purple);
+    box-shadow: 0 0 8px 2px rgba(168,85,247,0.7);
+  }
+
+  .risk-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size: 12px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    padding: 5px 11px;
+    border-radius: 100px;
+    border: 1px solid rgba(211,138,95,0.35);
+    background: rgba(211,138,95,0.08);
+    color: var(--risk-3);
+  }
+
+  .back-link{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    transition: color .15s ease;
+  }
+  .back-link:hover{ color: var(--purple); }
+
+  h1{
+    font-size: clamp(32px, 4.2vw, 46px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 650;
+    margin: 0 0 20px;
+  }
+
+  .lede{
+    font-size: 16.5px;
+    color: var(--text-dim);
+    max-width: 62ch;
+    margin: 0 0 40px;
+  }
+  .lede strong{ color: var(--text); font-weight: 550; }
+
+  /* ---------- risk legend recap ---------- */
+  .legend-strip{
+    display:flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 56px;
+  }
+  .legend-chip{
+    display:inline-flex;
+    align-items:center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+    padding: 5px 10px;
+    border-radius: 6px;
+  }
+
+  /* ---------- chapter progress rail ---------- */
+  .rail{
+    display:flex;
+    gap: 6px;
+    margin-bottom: 56px;
+    flex-wrap: wrap;
+  }
+  .rail a{
+    font-size: 11.5px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .rail a:hover{ border-color: var(--purple-deep); color: var(--text); }
+
+  /* ---------- subsection ---------- */
+  .sub-section{
+    margin-bottom: 64px;
+    scroll-margin-top: 32px;
+  }
+
+  .sub-head{
+    display:flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .sub-num{
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--purple);
+  }
+
+  .sub-head h2{
+    font-size: 21px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .risk-tag{
+    font-size: 10.5px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    padding: 3px 9px;
+    border-radius: 100px;
+    border: 1px solid;
+    margin-left: auto;
+  }
+  .risk-tag.r1{ color: var(--risk-1); border-color: rgba(111,174,122,0.4); background: rgba(111,174,122,0.08); }
+  .risk-tag.r2{ color: var(--risk-2); border-color: rgba(211,178,95,0.4); background: rgba(211,178,95,0.08); }
+  .risk-tag.r3{ color: var(--risk-3); border-color: rgba(211,138,95,0.4); background: rgba(211,138,95,0.08); }
+  .risk-tag.r4{ color: var(--risk-4); border-color: rgba(211,95,107,0.4); background: rgba(211,95,107,0.08); }
+
+  .sub-goal{
+    color: var(--text-dim);
+    font-size: 14.5px;
+    max-width: 62ch;
+    margin: 0 0 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sub-goal .label{
+    color: var(--cyan);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    display:block;
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  .point-list{
+    display:flex;
+    flex-direction:column;
+    gap: 3px;
+  }
+
+  .point{
+    display:flex;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .point:hover{ background: var(--bg-panel); border-color: var(--border); }
+
+  .point-mark{
+    color: var(--purple);
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: 13px;
+  }
+
+  .point-text{
+    font-size: 14.5px;
+    color: var(--text);
+  }
+  .point-text .dim{ color: var(--text-dim); }
+
+  /* ---------- prose paragraphs inside subsections ---------- */
+  .sub-prose{
+    color: var(--text-dim);
+    font-size: 14.5px;
+    max-width: 64ch;
+    margin: 0 0 16px;
+  }
+  .sub-prose strong{ color: var(--text); font-weight: 550; }
+
+  /* ---------- panel group heading (FIVR / TPL / Options) ---------- */
+  .panel-heading{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin: 32px 0 14px;
+  }
+  .panel-heading .tag{
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--bg);
+    background: var(--purple);
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-weight: 600;
+  }
+  .panel-heading .name{
+    font-size: 15px;
+    font-weight: 550;
+    color: var(--text);
+  }
+
+  /* ---------- step list (numbered how-to) ---------- */
+  .step-block{
+    margin: 14px 0 20px;
+  }
+
+  .steps{
+    display:flex;
+    flex-direction:column;
+    gap: 0;
+    border-left: 1px solid var(--border);
+    margin-left: 13px;
+  }
+
+  .step{
+    position: relative;
+    padding: 2px 0 20px 28px;
+  }
+  .step:last-child{ padding-bottom: 2px; }
+
+  .step::before{
+    content: attr(data-n);
+    position: absolute;
+    left: -13px;
+    top: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--bg-panel);
+    border: 1px solid var(--purple-deep);
+    color: var(--purple);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .step-text{
+    font-size: 14.5px;
+    padding-top: 2px;
+  }
+  .step-text .dim{ color: var(--text-dim); }
+
+  /* ---------- code block ---------- */
+  .code-block{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 10px 0 18px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--cyan);
+    overflow-x: auto;
+  }
+  .code-block .prompt{ color: var(--text-dim); flex-shrink: 0; }
+
+  /* ---------- settings table ---------- */
+  .settings-list{
+    display:flex;
+    flex-direction:column;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 6px 0 18px;
+  }
+
+  .settings-row{
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    background: var(--bg-panel);
+    padding: 12px 16px;
+    font-size: 13.5px;
+  }
+
+  .settings-row .path{ color: var(--text-dim); }
+  .settings-row .path b{ color: var(--text); font-weight: 500; }
+
+  .settings-row .val{
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--cyan);
+    flex-shrink: 0;
+    background: rgba(95,168,211,0.08);
+    border: 1px solid rgba(95,168,211,0.25);
+    padding: 2px 9px;
+    border-radius: 5px;
+  }
+
+  .settings-row .val.own{
+    color: var(--purple);
+    background: rgba(168,85,247,0.08);
+    border-color: rgba(168,85,247,0.3);
+  }
+
+  /* ---------- tool badges ---------- */
+  .badge-row{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 6px 0 4px 40px;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap: 6px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    background: rgba(95,168,211,0.08);
+    border: 1px solid rgba(95,168,211,0.25);
+    padding: 5px 10px;
+    border-radius: 6px;
+  }
+
+  /* ---------- callouts ---------- */
+  .callout{
+    display:flex;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 10px;
+    margin: 12px 0 18px;
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+  }
+
+  .callout-icon{
+    font-size: 17px;
+    flex-shrink: 0;
+    line-height: 1.3;
+  }
+
+  .callout-body{
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .callout-body strong{ color: var(--text); font-weight: 550; }
+  .callout-body code{ color: var(--cyan); }
+
+  .callout-tip{ border-left: 3px solid var(--purple); }
+  .callout-warn{ border-left: 3px solid var(--risk-4); }
+  .callout-info{ border-left: 3px solid var(--cyan); }
+  .callout-danger{ border-left: 3px solid var(--risk-4); background: rgba(211,95,107,0.06); }
+  .callout-warn .callout-icon, .callout-danger .callout-icon{ color: var(--risk-4); }
+  .callout-tip .callout-icon{ color: var(--purple); }
+  .callout-info .callout-icon{ color: var(--cyan); }
+
+  /* ---------- footer nav (prev/next) ---------- */
+  .chapter-nav{
+    display:flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 80px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+
+  .chapter-nav a{
+    flex: 1;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-panel);
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .chapter-nav a:hover{ border-color: var(--purple-deep); transform: translateY(-1px); }
+  .chapter-nav .dir{
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    display:block;
+    margin-bottom: 4px;
+  }
+  .chapter-nav .name{ font-size: 14.5px; font-weight: 550; }
+  .chapter-nav .next{ text-align: right; }
+
+</style>
+</head>
+<body>
+
+<div class="glow-field"></div>
+
+<div class="shell">
+
+  <!-- ============ NAV ============ -->
+  <nav class="nav">
+    <div class="nav-brand"><a href="index.html">PC/<span>Tuning</span>/Optimization</a></div>
+    <div class="nav-sub">mérés-alapú optimalizálás</div>
+
+    <div class="nav-group">
+      <a class="nav-group-title" href="index.html#philosophy"><span class="idx">00</span> Kezdés / filozófia</a>
+    </div>
+
+    <div class="nav-group">
+      <a class="nav-group-title" href="01.html"><span class="idx">01</span> Kiindulási állapot</a>
+    </div>
+
+    <div class="nav-group">
+      <a class="nav-group-title" href="02.html" style="color:inherit"><span class="risk-dot" style="background:var(--risk-1)"></span><span class="idx">02</span> Power</a>
+    </div>
+
+    <div class="nav-group active">
+      <a class="nav-group-title" href="03.html"><span class="idx">03</span> CPU</a>
+      <div class="nav-children">
+        <a href="#throttling" class="current">Power Throttling (registry)</a>
+        <a href="#scheduler">Scheduler</a>
+        <a href="#frequency">CPU frequency</a>
+        <a href="#boost">Turbo / Boost</a>
+        <a href="#epp">EPP</a>
+        <a href="#thread">Thread scheduling</a>
+        <a href="#priority">Process priority</a>
+        <a href="#mmcss">MMCSS</a>
+        <a href="#throttlestop">Throttle / thermal limits</a>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-2)"></span><span class="idx">04</span> GPU</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">05</span> Network</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-2)"></span><span class="idx">06</span> RAM</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">07</span> Game config</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title"><span class="risk-dot" style="background:var(--risk-3)"></span><span class="idx">08</span> SSD / HDD</div>
+    </div>
+  </nav>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <a class="back-link" href="index.html">← Vissza a főoldalra</a>
+
+    <div class="eyebrow-row">
+      <span class="status-pill"><span class="pulse"></span>03 · cpu</span>
+      <span class="risk-pill">🟠 vegyes szint — 🟢1 → 🔴4</span>
+    </div>
+
+    <h1>A processzor ütemezése, boostja és feszültsége</h1>
+    <p class="lede">
+      Ez a fejezet a Windows-szintű ütemezési beállításoktól halad a ThrottleStop-os
+      feszültség- és power limit-tuningig — a legkockázatosabb rész itt az undervolt,
+      minden mást megelőz egy jóval biztonságosabb regisztri-szintű alapozás.
+    </p>
+
+    <div class="legend-strip">
+      <span class="legend-chip">🟢 1 alacsony</span>
+      <span class="legend-chip">🟡 2 mérésfüggő</span>
+      <span class="legend-chip">🟠 3 haladó</span>
+      <span class="legend-chip">🔴 4 instabilitást okozhat</span>
+    </div>
+
+    <div class="rail">
+      <a href="#throttling">Power Throttling</a>
+      <a href="#scheduler">Scheduler</a>
+      <a href="#frequency">Frequency</a>
+      <a href="#boost">Boost</a>
+      <a href="#epp">EPP</a>
+      <a href="#thread">Thread sched.</a>
+      <a href="#priority">Priority</a>
+      <a href="#mmcss">MMCSS</a>
+      <a href="#throttlestop">ThrottleStop</a>
+    </div>
+
+    <!-- ============ POWER THROTTLING (REGISTRY) ============ -->
+    <section class="sub-section" id="throttling">
+      <div class="sub-head">
+        <span class="sub-num">03.1</span>
+        <h2>Power Throttling letiltása (registry)</h2>
+        <span class="risk-tag r1">🟢 SZINT 1</span>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        A Windows 10/11 beépített "Power Throttling" funkciója energiatakarékosság
+        érdekében korlátozza a CPU teljesítményét — ez potenciálisan az előtérben
+        futó alkalmazások (pl. a játék) teljesítményét is csökkentheti.
+      </p>
+
+      <div class="step-block">
+        <div class="steps">
+          <div class="step" data-n="1">
+            <div class="step-text"><code>Win + R</code> → <code>regedit</code></div>
+          </div>
+          <div class="step" data-n="2">
+            <div class="step-text">
+              Navigálj ide:
+              <div class="code-block" style="margin-top:8px;"><span class="prompt">&gt;</span> HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power</div>
+            </div>
+          </div>
+          <div class="step" data-n="3">
+            <div class="step-text">Ha nem létezik, hozz létre egy új kulcsot <strong>PowerThrottling</strong> néven.</div>
+          </div>
+          <div class="step" data-n="4">
+            <div class="step-text">Ebben hozz létre egy <strong>PowerThrottlingOff</strong> nevű DWORD (32-bit) értéket, és állítsd <strong>1</strong>-re.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ</span>
+        <div class="callout-body">Ez globálisan letiltja a power throttling mechanizmust minden alkalmazásra.</div>
+      </div>
+    </section>
+
+    <!-- ============ SCHEDULER ============ -->
+    <section class="sub-section" id="scheduler">
+      <div class="sub-head">
+        <span class="sub-num">03.2</span>
+        <h2>Scheduler</h2>
+        <span class="risk-tag r2">🟡 SZINT 2</span>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        A Windows ütemező a háttérfolyamatok helyett a foreground (aktív) alkalmazás
+        — vagyis a játék — felé billenjen.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><code>Win32PrioritySeparation</code> érték itt: <code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\PriorityControl</code></span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Ajánlott érték: <strong>0x26 (38 decimálisan)</strong> — hosszabb, variábilis időszeleteket ad az előtérben futó alkalmazásnak, simább játékélményt eredményezve</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CPU FREQUENCY ============ -->
+    <section class="sub-section" id="frequency">
+      <div class="sub-head">
+        <span class="sub-num">03.3</span>
+        <h2>CPU frequency</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Ellenőrizni, hogy a CPU ténylegesen az elvárt frekvencián fut-e terhelés
+        alatt — visszakapcsolva a 01. fejezet baseline-méréséhez.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Ha a mért órajel elmarad a várttól, az oka jellemzően három dolog egyike: hőlimit, power limit, vagy hibás Power Plan <span class="dim">(lásd 02. fejezet)</span></span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">A megoldást a <a href="#throttlestop" style="color:var(--cyan); text-decoration:underline;">Throttle / thermal limits</a> pont adja meg részletesen</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TURBO / BOOST ============ -->
+    <section class="sub-section" id="boost">
+      <div class="sub-head">
+        <span class="sub-num">03.4</span>
+        <h2>Turbo / Boost</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Hogy a CPU ne csak rövid ideig, hanem tartósan tudja tartani a boost
+        órajelét terhelés alatt.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">A <strong>Power Limit (PL1/PL2)</strong> és a <strong>Turbo Time Limit</strong> beállításain múlik — Intel CPU-knál ThrottleStop-ban (vagy BIOS-ban, ha elérhető) módosítható</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">PL1 = PL2 azonos, magas értékre állítva, a Turbo Time Limit gyakorlatilag végtelenre nyitva → a CPU nem esik vissza rövid boost után alapórajelre, hanem tartósan magas állapotban marad, amíg a hő/áramfelvétel engedi</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ EPP ============ -->
+    <section class="sub-section" id="epp">
+      <div class="sub-head">
+        <span class="sub-num">03.5</span>
+        <h2>EPP</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        A 02. fejezetben beállított EPP=0 (Power Plan szinten) mellett a CPU saját
+        belső logikáját is megerősíteni.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Ha EPP=0 ellenére is tapasztalsz visszafogást, azt jellemzően a Turbo Time Limit vagy a power limit korlátozza, nem az EPP</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ THREAD SCHEDULING ============ -->
+    <section class="sub-section" id="thread">
+      <div class="sub-head">
+        <span class="sub-num">03.6</span>
+        <h2>Thread scheduling</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        A játék szálai ne osztozzanak feleslegesen erőforráson háttérfolyamatokkal.
+      </p>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Az <a href="#mmcss" style="color:var(--cyan); text-decoration:underline;">MMCSS</a> beállítások relevánsak itt</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Alacsonyabb magszámú CPU-knál <span class="dim">(4 mag, HT nélkül)</span> ez különösen számít, mert nincs "felesleges" szál, amit háttérbe lehetne terelni</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROCESS PRIORITY ============ -->
+    <section class="sub-section" id="priority">
+      <div class="sub-head">
+        <span class="sub-num">03.7</span>
+        <h2>Process priority</h2>
+        <span class="risk-tag r3">🟠 SZINT 3</span>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        A játék folyamatnak magasabb prioritást adni.
+      </p>
+      <div class="code-block"><span class="prompt">&gt;</span> HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games</div>
+      <div class="settings-list">
+        <div class="settings-row">
+          <span class="path"><b>Priority</b></span>
+          <span class="val">High</span>
+        </div>
+        <div class="settings-row">
+          <span class="path"><b>Scheduling Category</b></span>
+          <span class="val">High</span>
+        </div>
+      </div>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Ez biztosítja, hogy a Windows a "Games" feladatkategóriát (amibe a legtöbb játék automatikusan bekerül) magas prioritással kezelje</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MMCSS ============ -->
+    <section class="sub-section" id="mmcss">
+      <div class="sub-head">
+        <span class="sub-num">03.8</span>
+        <h2>MMCSS</h2>
+        <span class="risk-tag r3">🟠 SZINT 3</span>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        Hálózati és multimédiás szolgáltatások ne akadályozzák a valós idejű
+        (játék) szálakat.
+      </p>
+      <div class="settings-list">
+        <div class="settings-row">
+          <span class="path"><b>NetworkThrottlingIndex</b></span>
+          <span class="val">letiltva (0xFFFFFFFF)</span>
+        </div>
+        <div class="settings-row">
+          <span class="path"><b>SystemResponsiveness</b></span>
+          <span class="val">0</span>
+        </div>
+      </div>
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">A <code>SystemResponsiveness = 0</code> azt jelenti, hogy semennyi CPU-erőforrást nem tart vissza háttérfolyamatoknak — minden a foreground alkalmazásé (a játék) lehet</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ THROTTLE / THERMAL LIMITS — THROTTLESTOP ============ -->
+    <section class="sub-section" id="throttlestop">
+      <div class="sub-head">
+        <span class="sub-num">03.9</span>
+        <h2>Throttle / thermal limits — ThrottleStop</h2>
+      </div>
+      <p class="sub-goal">
+        <span class="label">CÉL</span>
+        A hőmérséklet és a feszültség ne legyen szűk keresztmetszet — ez a fejezet
+        legmélyebb, leginkább hardver-specifikus része.
+      </p>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">
+          <strong>Kezdő beállítás:</strong> a ThrottleStop főablakában érdemes minden
+          pipát kivenni, kivéve a <strong>Speed Shift EPP</strong>-t (mellette az érték
+          legyen <strong>0</strong>), valamint a <strong>Task Bar</strong> opciót érdemes
+          bepipálva hagyni.
+        </div>
+      </div>
+
+      <!-- FIVR -->
+      <div class="panel-heading">
+        <span class="tag">FIVR fül</span>
+        <span class="name">feszültség / undervolt</span>
+        <span class="risk-tag r4" style="margin-left:auto;">🔴 SZINT 4</span>
+      </div>
+
+      <p class="sub-prose">
+        Az undervoltot az <strong>Offset Voltage</strong>-on fogjuk beállítani. Ennek
+        lényege, hogy kisebb feszültséggel ugyanazt a teljesítményt adja le a
+        processzor. Ez hőmérséklet-csökkenést eredményez, ami stabilabb teljesítményt
+        ad, és a processzor élettartamát is növeli, ha nem forr.
+      </p>
+
+      <div class="callout callout-danger">
+        <span class="callout-icon">⚠</span>
+        <div class="callout-body">
+          A <strong>CPU Core</strong> és <strong>CPU Cache</strong> offset voltage-ánál
+          mindig ugyanazt az értéket add meg mindkettőnél!
+        </div>
+      </div>
+
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>CPU Core és CPU Cache</strong>: Adaptive mód, Offset Voltage — a saját validált értéket ki kell tapasztalni. <strong>-10mV-os lépésekben haladj</strong>, és folyamatosan érdemes játék közben tesztelni. Ha esik a teljesítmény, vagy már nem érzed stabilnak, érdemes 10-15mV-ot visszavenni.</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>VCCIN</strong>: Default <span class="dim">(nem érdemes hozzáértés nélkül piszkálni)</span></span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>IccMax</strong>: maximális áramfelvétel-limit — ha túl alacsonyra van állítva, önmagában throttle-t okozhat. Érdemes maxra húzni: nem fogja túlfeszültségelni, csak annyi áramot vesz fel, amennyi ténylegesen szükséges neki.</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>Cache Ratio Min/Max</strong>: rögzített érték, nem hagyja lebegni az uncore órajelet — az azonos min/max érték jó megoldás lehet.</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>Speed Shift EPP</strong>: 0</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text">Ha van integrált GPU a processzorban, azt is érdemes undervoltolni: válaszd ki az Intel GPU-t, és ott is állítsd az Offset Voltage-ot. <strong>-50/-60mV</strong> alá itt már nem érdemes menni, mivel ha rendes videokártyád van, valószínűleg nem is fogod észrevenni, hol lesz már instabil — de -50/-60mV még nem okoz gondot, és egy kicsit kevesebb hőt termel.</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>Save Voltage Changes</strong>: "Save voltages immediately" — így már Windows-indítás előtt érvényesül</span>
+        </div>
+      </div>
+
+      <div class="settings-list" style="margin-top:20px;">
+        <div class="settings-row">
+          <span class="path">Saját validált <b>CPU Core / CPU Cache</b> offset</span>
+          <span class="val own">-125.0 mV</span>
+        </div>
+      </div>
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠</span>
+        <div class="callout-body">
+          Ez a <strong>saját, ezen a gépen validált</strong> érték — nálad lehet, hogy csak
+          -50mV, vagy akár -250mV is stabil marad, ez CPU-egyedenként eltér. Mindig a
+          sajátodat teszteld ki, lépésenként. Ha crash van, azonnal vedd vissza —
+          kárt nem fog okozni.
+        </div>
+      </div>
+
+      <!-- TPL -->
+      <div class="panel-heading">
+        <span class="tag">TPL fül</span>
+        <span class="name">Power Limitek</span>
+        <span class="risk-tag r3" style="margin-left:auto;">🟠 SZINT 3</span>
+      </div>
+
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>PL1 = PL2</strong>, azonos érték, zárolva, érdemes a maximum értékre állítani — ehhez utána kell nézned, hogy a te processzorodnak mi a valós maximuma</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>Turbo Time Limit</strong>: elsőnek próbáld <strong>128</strong>-ra állítani, majd játssz vele — ha nem forr fel a processzor, gyakorlatilag a maximumra is lehet húzni</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>Speed Shift Min/Max</strong> tartomány beállítása: pipáld be a Speed Shift-et, majd írd be a min és max értéket — a maxot érdemes a minhez is beállítani</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>MSR</strong> és <strong>MMIO</strong> zárolva, hogy a BIOS ne írja felül induláskor</span>
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="panel-heading">
+        <span class="tag">Options fül</span>
+        <span class="name">kiegészítő beállítások</span>
+        <span class="risk-tag r3" style="margin-left:auto;">🟠 SZINT 3</span>
+      </div>
+
+      <div class="settings-list">
+        <div class="settings-row">
+          <span class="path"><b>Disable Safe Start</b></span>
+          <span class="val">bekapcsolva</span>
+        </div>
+        <div class="settings-row">
+          <span class="path"><b>Start Minimized / Minimize on Close</b></span>
+          <span class="val">bekapcsolva</span>
+        </div>
+        <div class="settings-row">
+          <span class="path"><b>Timer Resolution</b></span>
+          <span class="val">0.50 ms</span>
+        </div>
+      </div>
+
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>Disable Safe Start</strong>: a beállítások már bejelentkezés előtt érvényesülnek — csak validált, stabil érték mellett érdemes bekapcsolni</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>Start Minimized / Minimize on Close</strong>: praktikus háttér-működéshez</span>
+        </div>
+      </div>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠</span>
+        <div class="callout-body">
+          A <strong>Disable Safe Start</strong> helytelen (nem validált) undervolttal
+          párosítva akár boot-problémát is okozhat — ezért csak stabil érték mellett
+          érdemes bekapcsolni.
+        </div>
+      </div>
+
+      <!-- Főablak -->
+      <div class="panel-heading">
+        <span class="tag">Főablak</span>
+        <span class="name">ellenőrzés</span>
+      </div>
+
+      <div class="point-list">
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>FID</strong> oszlop: tényleges órajel — mutatja, működik-e a Power Limit / Turbo Time Limit beállítás</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>°C / Max</strong> oszlop: ha tartósan magas, vissza kell térni a 01. fejezet hőmérséklet-méréséhez, megfontolva egy takarítást/pasztázást</span>
+        </div>
+        <div class="point">
+          <span class="point-mark">→</span>
+          <span class="point-text"><strong>PKG Power</strong>: ha tartósan a beállított limit alatt van, nem a power limit, hanem valószínűleg a hőmérséklet a szűk keresztmetszet</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PREV / NEXT ============ -->
+    <div class="chapter-nav">
+      <a href="02.html" class="prev">
+        <span class="dir">← előző</span>
+        <span class="name">02 — Power</span>
+      </a>
+      <a href="#" class="next">
+        <span class="dir">következő →</span>
+        <span class="name">04 — GPU</span>
+      </a>
+    </div>
+
+  </main>
+
+</div>
+
+</body>
+</html>
